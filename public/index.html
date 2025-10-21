@@ -1,40 +1,39 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Prueba Supabase - Form</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Formulario y Storage Supabase</title>
   <style>
-    body { font-family: system-ui, sans-serif; padding: 20px; max-width: 720px; margin: auto; }
-    input, button { padding: 8px 10px; font-size: 16px; margin: 6px 0; width: 100%; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; padding:20px; max-width:720px; margin:auto; }
+    input, button { padding:8px 10px; font-size:16px; margin:6px 0; width:100%; box-sizing:border-box; }
     .row { display:flex; gap:10px; }
     .row input { flex:1; }
-    #messages { margin-top: 10px; min-height: 1.4em; color: #333; }
-    table { width:100%; border-collapse: collapse; margin-top: 12px; }
-    td, th { border: 1px solid #ddd; padding: 8px; text-align:left; }
+    #messages { margin-top:10px; min-height:1.4em; color:#333; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    td, th { border:1px solid #ddd; padding:8px; text-align:left; }
   </style>
 </head>
 <body>
-  <h1>Formulario de prueba — Supabase</h1>
-  <p>Inserta un nombre y correo para probar la inyección en Supabase.</p>
+  <h1>Supabase: Usuarios + Archivos</h1>
 
-  <div id="form">
-    <input id="name" placeholder="Nombre" />
-    <input id="email" placeholder="Correo (único)" />
-    <button id="submitBtn">Guardar en Supabase</button>
-  </div>
+  <h2>Registrar usuario</h2>
+  <input id="name" placeholder="Nombre">
+  <input id="email" placeholder="Correo">
+  <button id="submitBtn">Guardar en Supabase</button>
 
-  <div class="row" style="margin-top:12px;">
-    <button id="fetchBtn" style="flex:1">Ver registrados</button>
-    <button id="clearBtn" style="flex:1">Limpiar lista</button>
-  </div>
+  <h2>Subir archivo</h2>
+  <input type="file" id="fileInput">
+  <button id="uploadBtn">Subir archivo</button>
 
   <div id="messages"></div>
 
+  <h2>Usuarios registrados</h2>
+  <button id="fetchBtn">Ver registrados</button>
+  <button id="clearBtn">Limpiar lista</button>
   <div id="listContainer" style="display:none;">
-    <h2>Usuarios registrados</h2>
     <table id="usersTable">
-      <thead><tr><th>id</th><th>nombre</th><th>email</th><th>created_at</th></tr></thead>
+      <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Created_at</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -51,81 +50,92 @@
     const listContainer = document.getElementById('listContainer');
     const usersTableBody = document.querySelector('#usersTable tbody');
 
-    function showMsg(txt, isError = false) {
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    function showMsg(txt, isError=false) {
       messages.textContent = txt;
       messages.style.color = isError ? 'crimson' : '#2b6cb0';
     }
 
-    // Insertar
+    // -----------------------
+    // Registrar usuario
+    // -----------------------
     submitBtn.addEventListener('click', async () => {
       const name = nameInput.value.trim();
       const email = emailInput.value.trim();
-
-      if (!name || !email) {
-        showMsg('Llena nombre y correo antes de enviar.', true);
-        return;
-      }
+      if(!name || !email) return showMsg('Llena nombre y correo', true);
 
       showMsg('Enviando...');
-
       const { data, error } = await supabase
         .from('users_test')
         .insert([{ name, email }])
         .select();
 
-      if (error) {
-        showMsg('Error: ' + error.message, true);
-        console.error(error);
-      } else {
-        showMsg('Guardado correctamente. ID: ' + (data?.[0]?.id ?? ' — '));
+      if(error) showMsg('Error: '+error.message, true);
+      else {
+        showMsg('Guardado ID: ' + (data?.[0]?.id ?? '—'));
         nameInput.value = '';
         emailInput.value = '';
       }
     });
 
-    // Traer registros
+    // -----------------------
+    // Traer usuarios
+    // -----------------------
     fetchBtn.addEventListener('click', async () => {
       showMsg('Cargando usuarios...');
       const { data, error } = await supabase
         .from('users_test')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending:false })
         .limit(100);
 
-      if (error) {
-        showMsg('Error al traer usuarios: ' + error.message, true);
-        console.error(error);
-        return;
-      }
+      if(error) return showMsg('Error al traer usuarios: '+error.message, true);
 
       usersTableBody.innerHTML = '';
-      if (!data || data.length === 0) {
-        usersTableBody.innerHTML = '<tr><td colspan="4">No hay registros</td></tr>';
-      } else {
-        data.forEach(u => {
-          const row = document.createElement('tr');
-          row.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${u.created_at}</td>`;
-          usersTableBody.appendChild(row);
-        });
-      }
-      listContainer.style.display = 'block';
-      showMsg('Usuarios cargados: ' + (data?.length ?? 0));
+      if(!data || data.length===0) usersTableBody.innerHTML='<tr><td colspan="4">No hay registros</td></tr>';
+      else data.forEach(u=>{
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${u.created_at}</td>`;
+        usersTableBody.appendChild(row);
+      });
+      listContainer.style.display='block';
+      showMsg('Usuarios cargados: '+(data?.length ?? 0));
     });
 
-    clearBtn.addEventListener('click', () => {
-      usersTableBody.innerHTML = '';
-      listContainer.style.display = 'none';
-      messages.textContent = '';
+    clearBtn.addEventListener('click', ()=>{
+      usersTableBody.innerHTML='';
+      listContainer.style.display='none';
+      messages.textContent='';
     });
 
-    function escapeHtml(str = '') {
+    function escapeHtml(str='') {
       return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
     }
+
+    // -----------------------
+    // Subir archivo
+    // -----------------------
+    uploadBtn.addEventListener('click', async () => {
+      const file = fileInput.files[0];
+      if(!file) return showMsg('Selecciona un archivo', true);
+
+      showMsg('Subiendo archivo...');
+      const { data, error } = await supabase
+        .storage
+        .from('archivos')        // <-- nombre del bucket
+        .upload(file.name, file, { cacheControl: '3600', upsert: true });
+
+      if(error) showMsg('Error al subir: '+error.message, true);
+      else showMsg('Archivo subido: '+data.path);
+    });
+
   </script>
 </body>
 </html>
