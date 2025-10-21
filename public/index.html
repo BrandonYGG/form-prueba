@@ -39,20 +39,8 @@
     </table>
   </div>
 
-  <div style="margin-top:20px;">
-    <h2>Subir archivo</h2>
-    <input type="file" id="fileInput" />
-    <button id="uploadBtn">Subir a Supabase Storage</button>
-  </div>
-
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-    // Variables de entorno de Netlify
-    const SUPABASE_URL = import.meta.env.SUPABASE_URL;
-    const SUPABASE_ANON_KEY = import.meta.env.SUPABASE_ANON_KEY;
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    import { supabase } from './src/supabaseClient.js';
 
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
@@ -63,39 +51,63 @@
     const listContainer = document.getElementById('listContainer');
     const usersTableBody = document.querySelector('#usersTable tbody');
 
-    const fileInput = document.getElementById('fileInput');
-    const uploadBtn = document.getElementById('uploadBtn');
-
     function showMsg(txt, isError = false) {
       messages.textContent = txt;
       messages.style.color = isError ? 'crimson' : '#2b6cb0';
     }
 
-    // Insertar usuario
+    // Insertar
     submitBtn.addEventListener('click', async () => {
       const name = nameInput.value.trim();
       const email = emailInput.value.trim();
-      if (!name || !email) return showMsg('Llena nombre y correo antes de enviar.', true);
+
+      if (!name || !email) {
+        showMsg('Llena nombre y correo antes de enviar.', true);
+        return;
+      }
+
       showMsg('Enviando...');
-      const { data, error } = await supabase.from('users_test').insert([{ name, email }]).select();
-      if (error) return showMsg('Error: ' + error.message, true);
-      showMsg('Guardado correctamente. ID: ' + (data?.[0]?.id ?? ' — '));
-      nameInput.value = '';
-      emailInput.value = '';
+
+      const { data, error } = await supabase
+        .from('users_test')
+        .insert([{ name, email }])
+        .select();
+
+      if (error) {
+        showMsg('Error: ' + error.message, true);
+        console.error(error);
+      } else {
+        showMsg('Guardado correctamente. ID: ' + (data?.[0]?.id ?? ' — '));
+        nameInput.value = '';
+        emailInput.value = '';
+      }
     });
 
-    // Traer usuarios
+    // Traer registros
     fetchBtn.addEventListener('click', async () => {
       showMsg('Cargando usuarios...');
-      const { data, error } = await supabase.from('users_test').select('*').order('created_at', { ascending: false }).limit(100);
-      if (error) return showMsg('Error al traer usuarios: ' + error.message, true);
+      const { data, error } = await supabase
+        .from('users_test')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        showMsg('Error al traer usuarios: ' + error.message, true);
+        console.error(error);
+        return;
+      }
+
       usersTableBody.innerHTML = '';
-      if (!data || data.length === 0) usersTableBody.innerHTML = '<tr><td colspan="4">No hay registros</td></tr>';
-      else data.forEach(u => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${u.created_at}</td>`;
-        usersTableBody.appendChild(row);
-      });
+      if (!data || data.length === 0) {
+        usersTableBody.innerHTML = '<tr><td colspan="4">No hay registros</td></tr>';
+      } else {
+        data.forEach(u => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${u.created_at}</td>`;
+          usersTableBody.appendChild(row);
+        });
+      }
       listContainer.style.display = 'block';
       showMsg('Usuarios cargados: ' + (data?.length ?? 0));
     });
@@ -104,16 +116,6 @@
       usersTableBody.innerHTML = '';
       listContainer.style.display = 'none';
       messages.textContent = '';
-    });
-
-    // Subida de archivos
-    uploadBtn.addEventListener('click', async () => {
-      const file = fileInput.files[0];
-      if (!file) return showMsg('Selecciona un archivo primero', true);
-      showMsg('Subiendo archivo...');
-      const { data, error } = await supabase.storage.from('archivos').upload(file.name, file);
-      if (error) return showMsg('Error al subir: ' + error.message, true);
-      showMsg('Archivo subido: ' + file.name);
     });
 
     function escapeHtml(str = '') {
