@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prueba Supabase - Form</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; max-width: 720px; margin: auto; }
+    input, button { padding: 8px 10px; font-size: 16px; margin: 6px 0; width: 100%; box-sizing: border-box; }
+    .row { display:flex; gap:10px; }
+    .row input { flex:1; }
+    #messages { margin-top: 10px; min-height: 1.4em; color: #333; }
+    table { width:100%; border-collapse: collapse; margin-top: 12px; }
+    td, th { border: 1px solid #ddd; padding: 8px; text-align:left; }
+  </style>
+</head>
+<body>
+  <h1>Formulario de prueba — Supabase</h1>
+  <p>Inserta un nombre y correo para probar la inyección en Supabase.</p>
+
+  <div id="form">
+    <input id="name" placeholder="Nombre" />
+    <input id="email" placeholder="Correo (único)" />
+    <button id="submitBtn">Guardar en Supabase</button>
+  </div>
+
+  <div class="row" style="margin-top:12px;">
+    <button id="fetchBtn" style="flex:1">Ver registrados</button>
+    <button id="clearBtn" style="flex:1">Limpiar lista</button>
+  </div>
+
+  <div id="messages"></div>
+
+  <div id="listContainer" style="display:none;">
+    <h2>Usuarios registrados</h2>
+    <table id="usersTable">
+      <thead><tr><th>id</th><th>nombre</th><th>email</th><th>created_at</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import { supabase } from './src/supabaseClient.js';
+
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const submitBtn = document.getElementById('submitBtn');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const messages = document.getElementById('messages');
+    const listContainer = document.getElementById('listContainer');
+    const usersTableBody = document.querySelector('#usersTable tbody');
+
+    function showMsg(txt, isError = false) {
+      messages.textContent = txt;
+      messages.style.color = isError ? 'crimson' : '#2b6cb0';
+    }
+
+    // Insertar
+    submitBtn.addEventListener('click', async () => {
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim();
+
+      if (!name || !email) {
+        showMsg('Llena nombre y correo antes de enviar.', true);
+        return;
+      }
+
+      showMsg('Enviando...');
+
+      const { data, error } = await supabase
+        .from('users_test')
+        .insert([{ name, email }])
+        .select(); // .select() nos devuelve el registro insertado si config permite
+
+      if (error) {
+        // Manejo simple de errores: conflicto por email único, etc.
+        showMsg('Error: ' + error.message, true);
+        console.error(error);
+      } else {
+        showMsg('Guardado correctamente. ID: ' + (data?.[0]?.id ?? ' — '));
+        nameInput.value = '';
+        emailInput.value = '';
+      }
+    });
+
+    // Traer registros
+    fetchBtn.addEventListener('click', async () => {
+      showMsg('Cargando usuarios...');
+      const { data, error } = await supabase
+        .from('users_test')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        showMsg('Error al traer usuarios: ' + error.message, true);
+        console.error(error);
+        return;
+      }
+
+      usersTableBody.innerHTML = '';
+      if (!data || data.length === 0) {
+        usersTableBody.innerHTML = '<tr><td colspan="4">No hay registros</td></tr>';
+      } else {
+        data.forEach(u => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${u.created_at}</td>`;
+          usersTableBody.appendChild(row);
+        });
+      }
+      listContainer.style.display = 'block';
+      showMsg('Usuarios cargados: ' + (data?.length ?? 0));
+    });
+
+    clearBtn.addEventListener('click', () => {
+      usersTableBody.innerHTML = '';
+      listContainer.style.display = 'none';
+      messages.textContent = '';
+    });
+
+    // Pequeña función para evitar insertar HTML crudo en la tabla
+    function escapeHtml(str = '') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+  </script>
+</body>
+</html>
