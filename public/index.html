@@ -133,7 +133,7 @@
         .upload(file.name, file, { cacheControl: '3600', upsert: true });
 
       if(error) showMsg('Error al subir: '+error.message, true);
-      else showMsg('Archivo subido: '+data.path);
+      else showMsg('¡Archivo subido con éxito!: '+data.path);
     });
 
   </script>
