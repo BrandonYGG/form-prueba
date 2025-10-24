@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Formulario y Storage Supabase</title>
+  <title>Supabase: Usuarios + Archivos + Auth</title>
   <style>
     body { font-family: system-ui, sans-serif; padding:20px; max-width:720px; margin:auto; }
     input, button { padding:8px 10px; font-size:16px; margin:6px 0; width:100%; box-sizing:border-box; }
@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h1>Supabase: Usuarios + Archivos</h1>
+  <h1>Supabase: Usuarios + Archivos + Auth</h1>
 
   <h2>Registrar usuario</h2>
   <input id="name" placeholder="Nombre">
@@ -25,6 +25,13 @@
   <h2>Subir archivo</h2>
   <input type="file" id="fileInput">
   <button id="uploadBtn">Subir archivo</button>
+
+  <h2>Autenticación</h2>
+  <input type="email" id="authEmail" placeholder="Correo">
+  <input type="password" id="authPassword" placeholder="Contraseña">
+  <button id="signupBtn">Registrarse</button>
+  <button id="loginBtn">Iniciar sesión</button>
+  <button id="logoutBtn">Cerrar sesión</button>
 
   <div id="messages"></div>
 
@@ -40,7 +47,9 @@
 
   <script type="module">
     import { supabase } from './src/supabaseClient.js';
+    import { signUp, signIn, signOut } from './src/auth.js';
 
+    // Inputs y botones
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
     const submitBtn = document.getElementById('submitBtn');
@@ -53,9 +62,24 @@
     const fileInput = document.getElementById('fileInput');
     const uploadBtn = document.getElementById('uploadBtn');
 
+    const authEmail = document.getElementById('authEmail');
+    const authPassword = document.getElementById('authPassword');
+    const signupBtn = document.getElementById('signupBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
     function showMsg(txt, isError=false) {
       messages.textContent = txt;
       messages.style.color = isError ? 'crimson' : '#2b6cb0';
+    }
+
+    function escapeHtml(str='') {
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
     }
 
     // -----------------------
@@ -110,15 +134,6 @@
       messages.textContent='';
     });
 
-    function escapeHtml(str='') {
-      return String(str)
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'","&#039;");
-    }
-
     // -----------------------
     // Subir archivo
     // -----------------------
@@ -129,12 +144,19 @@
       showMsg('Subiendo archivo...');
       const { data, error } = await supabase
         .storage
-        .from('archivos')        // <-- nombre del bucket
-        .upload(file.name, file, { cacheControl: '3600', upsert: true });
+        .from('archivos')
+        .upload(`${Date.now()}_${file.name}`, file, { cacheControl:'3600', upsert:true });
 
       if(error) showMsg('Error al subir: '+error.message, true);
       else showMsg('¡Archivo subido con éxito!: '+data.path);
     });
+
+    // -----------------------
+    // Autenticación
+    // -----------------------
+    signupBtn.addEventListener('click', () => signUp(authEmail.value, authPassword.value, showMsg));
+    loginBtn.addEventListener('click', () => signIn(authEmail.value, authPassword.value, showMsg));
+    logoutBtn.addEventListener('click', () => signOut(showMsg));
 
   </script>
 </body>
