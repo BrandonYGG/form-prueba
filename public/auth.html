@@ -1,23 +1,58 @@
-import { supabase } from './supabaseClient.js';
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autenticación Supabase</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; max-width: 720px; margin: auto; }
+    input, button { padding: 8px 10px; font-size: 16px; margin: 6px 0; width: 100%; box-sizing: border-box; }
+    #messages { margin-top: 10px; min-height: 1.4em; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>Supabase: Autenticación</h1>
 
-export async function signUp(email, password, showMsg) {
-  if(!email || !password) return showMsg('Llena correo y contraseña', true);
-  showMsg('Registrando...');
-  const { user, session, error } = await supabase.auth.signUp({ email, password });
-  if(error) showMsg('Error: '+error.message, true);
-  else showMsg('Registrado correctamente. Confirma tu correo.');
-}
+  <h2>Registro</h2>
+  <input id="signup-email" type="email" placeholder="Correo">
+  <input id="signup-password" type="password" placeholder="Contraseña">
+  <button id="signup-btn">Registrarse</button>
 
-export async function signIn(email, password, showMsg) {
-  if(!email || !password) return showMsg('Llena correo y contraseña', true);
-  showMsg('Iniciando sesión...');
-  const { user, session, error } = await supabase.auth.signInWithPassword({ email, password });
-  if(error) showMsg('Error: '+error.message, true);
-  else showMsg('¡Sesión iniciada! ID: '+user.id);
-}
+  <h2>Iniciar sesión</h2>
+  <input id="signin-email" type="email" placeholder="Correo">
+  <input id="signin-password" type="password" placeholder="Contraseña">
+  <button id="signin-btn">Iniciar sesión</button>
 
-export async function signOut(showMsg) {
-  const { error } = await supabase.auth.signOut();
-  if(error) showMsg('Error: '+error.message, true);
-  else showMsg('Sesión cerrada correctamente.');
-}
+  <h2>Cerrar sesión</h2>
+  <button id="signout-btn">Cerrar sesión</button>
+
+  <div id="messages"></div>
+
+  <script type="module">
+    import { signUp, signIn, signOut } from './src/auth.js';
+
+    const messages = document.getElementById('messages');
+
+    function showMsg(txt, isError=false) {
+      messages.textContent = txt;
+      messages.style.color = isError ? 'crimson' : '#2b6cb0';
+    }
+
+    document.getElementById('signup-btn').addEventListener('click', () => {
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      signUp(email, password, showMsg);
+    });
+
+    document.getElementById('signin-btn').addEventListener('click', () => {
+      const email = document.getElementById('signin-email').value;
+      const password = document.getElementById('signin-password').value;
+      signIn(email, password, showMsg);
+    });
+
+    document.getElementById('signout-btn').addEventListener('click', () => {
+      signOut(showMsg);
+    });
+  </script>
+</body>
+</html>

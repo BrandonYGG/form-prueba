@@ -3,15 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Supabase: Usuarios + Archivos + Auth</title>
+  <title>Formulario y Storage Supabase</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding:20px; max-width:720px; margin:auto; }
+    input, button { padding:8px 10px; font-size:16px; margin:6px 0; width:100%; box-sizing:border-box; }
+    .row { display:flex; gap:10px; }
+    .row input { flex:1; }
+    #messages { margin-top:10px; min-height:1.4em; color:#333; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    td, th { border:1px solid #ddd; padding:8px; text-align:left; }
+  </style>
 </head>
 <body>
-  <h1>Supabase: Usuarios + Archivos + Auth</h1>
+  <h1>Supabase: Usuarios + Archivos</h1>
 
   <h2>Registrar usuario</h2>
   <input id="name" placeholder="Nombre">
   <input id="email" placeholder="Correo">
-  <button id="submitBtn">Enviar link de confirmación</button>
+  <button id="submitBtn">Guardar en Supabase</button>
 
   <h2>Subir archivo</h2>
   <input type="file" id="fileInput">
@@ -29,7 +38,6 @@
     </table>
   </div>
 
-  <!-- Scripts -->
   <script type="module" src="./src/authAndUpload.js"></script>
 </body>
 </html>
